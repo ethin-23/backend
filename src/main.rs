@@ -43,7 +43,7 @@ async fn run_server() -> anyhow::Result<SocketAddr> {
 
     let mut module = RpcModule::new(());
 
-    register_methods(&mut module);
+    register_methods(&mut module)?;
 
     let addr = server.local_addr()?;
     let handle = server.start(module);
