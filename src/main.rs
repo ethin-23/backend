@@ -1,5 +1,8 @@
+mod methods;
+
 use hyper::Method;
 use jsonrpsee::server::{RpcModule, Server};
+use methods::register_methods;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -39,10 +42,8 @@ async fn run_server() -> anyhow::Result<SocketAddr> {
         .await?;
 
     let mut module = RpcModule::new(());
-    module.register_method("say_hello", |_, _| {
-        println!("say_hello method called!");
-        "Hello there!!"
-    })?;
+
+    register_methods(&mut module);
 
     let addr = server.local_addr()?;
     let handle = server.start(module);
