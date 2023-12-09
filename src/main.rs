@@ -10,10 +10,6 @@ use tower_http::cors::{Any, CorsLayer};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
-    tracing_subscriber::FmtSubscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .try_init()
-        .expect("setting default subscriber failed");
 
     // Start up a JSON-RPC server that allows cross origin requests.
     let _server_addr = run_server().await?;
