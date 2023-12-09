@@ -1,4 +1,11 @@
-use jsonrpsee::{types::Params, RpcModule};
+use jsonrpsee::{
+    core::{async_trait, client::ClientT},
+    http_client::HttpClientBuilder,
+    proc_macros::rpc,
+    rpc_params,
+    types::{error::ErrorCode, Params},
+    RpcModule,
+};
 use serde_json::Value;
 
 use crate::paillier;
@@ -28,6 +35,76 @@ pub fn encrypt(message: &str) -> anyhow::Result<(u128, u128, u128)> {
     Ok((n, c.as_u128(), r.into()))
 }
 
+pub struct RPC;
+
+#[rpc(server, namespace = "starknet")]
+pub trait RPC: Send + Sync {
+    #[method(name = "play")]
+    async fn play(&self) -> String;
+
+    #[method(name = "decipher")]
+    async fn decipher(
+        &self,
+        addr: String,
+        r: String,
+        s: String,
+        msg: String,
+    ) -> Result<String, ErrorCode>;
+}
+
+#[async_trait]
+impl RPCServer for RPC {
+    async fn play(&self) -> String {
+        println!("play");
+
+        return "Hi".to_string();
+    }
+    async fn decipher(
+        &self,
+        addr: String,
+        _r: String,
+        _s: String,
+        _msg: String,
+    ) -> Result<String, ErrorCode> {
+        // verify sig ECDSA
+        let starknet_goerli_alchemy_rpc_url: String =
+            dotenv::var("STARKNET_GOERLI_ALCHEMY_RPC_URL").unwrap();
+        // entry point selector for is_valid_signature
+        let entry_point_selector =
+            "0x28420862938116cb3bbdbedee07451ccc54d4e9412dbef71142ad1980a30941";
+
+        let http_client = HttpClientBuilder::default()
+            .build(starknet_goerli_alchemy_rpc_url)
+            .unwrap();
+
+        let raw_params = serde_json::json!({
+            "request": {
+                "contract_address": addr,
+                "entry_point_selector": entry_point_selector,
+                "calldata": ["0x7b", "0x2", "0x7b", "0x7b"]
+            },
+            "block_id": "pending"
+        });
+
+        let params = rpc_params! {raw_params};
+        let rpc_response: std::result::Result<std::option::Option<String>, String> = http_client
+            .request("is_valid_signature", params)
+            .await
+            .unwrap();
+        match rpc_response {
+            Ok(Some(s)) => println!("ok some {s}"),
+            Ok(None) => println!("ok none"),
+            Err(e) => println!("%%%Error: {e:?}"),
+        };
+        // Fetch amount of address from contract
+
+        // Decrypt the amount
+
+        // Send the decrypted amount
+
+        todo!();
+    }
+}
 pub fn register_methods<Context: Send + Sync + 'static>(
     module: &mut RpcModule<Context>,
 ) -> anyhow::Result<()> {
@@ -47,23 +124,7 @@ pub fn register_methods<Context: Send + Sync + 'static>(
             // Err(er) => return Err(ErrorCode::InvalidParams),
         }
     })?;
-    module.register_method("decipher_amount", |params, _| {
-        let params = parse_params(params);
-        let address = &params[0];
-        let sign_r = &params[1];
-        let sign_s = &params[2];
-        let message = &params[3];
-
-        // verify sig ECDSA
-
-        // Fetch amount of address from contract
-
-        // Decrypt the amount
-
-        // Send the decrypted amount
-
-        todo!();
-    })?;
-
+    let rpc = RPC;
+    module.merge(rpc.into_rpc())?;
     Ok(())
 }
