@@ -1,4 +1,5 @@
 mod methods;
+mod utils;
 
 use hyper::Method;
 use jsonrpsee::server::{RpcModule, Server};
@@ -40,8 +41,6 @@ async fn run_server() -> anyhow::Result<SocketAddr> {
         .set_middleware(middleware)
         .build("127.0.0.1:18765".parse::<SocketAddr>()?)
         .await?;
-
-    let key = fast_paillier::EncryptionKey::;
 
     let mut module = RpcModule::new(());
 
