@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use jsonrpsee::{
     core::{async_trait, client::ClientT},
     http_client::HttpClientBuilder,
@@ -6,6 +8,7 @@ use jsonrpsee::{
     types::{error::ErrorCode, Params},
     RpcModule,
 };
+use primitive_types::U256;
 use serde_json::Value;
 
 use crate::paillier;
@@ -62,26 +65,28 @@ impl RPCServer for RPC {
     async fn decipher(
         &self,
         addr: String,
-        _r: String,
-        _s: String,
-        _msg: String,
+        r: String,
+        s: String,
+        msg: String,
     ) -> Result<String, ErrorCode> {
+        println!("decipher");
         // verify sig ECDSA
         let starknet_goerli_alchemy_rpc_url: String =
             dotenv::var("STARKNET_GOERLI_ALCHEMY_RPC_URL").unwrap();
+        let contract_address = "0x009522ba2de47439843d43509bb6d3e968e6e3c8bf08254de6db9eab3a13434e";
         // entry point selector for is_valid_signature
-        let entry_point_selector =
+        let is_valid_signature =
             "0x28420862938116cb3bbdbedee07451ccc54d4e9412dbef71142ad1980a30941";
 
         let http_client = HttpClientBuilder::default()
             .build(starknet_goerli_alchemy_rpc_url)
             .unwrap();
 
-        let raw_params = serde_json::json!({
+        let mut raw_params = serde_json::json!({
             "request": {
-                "contract_address": addr,
-                "entry_point_selector": entry_point_selector,
-                "calldata": ["0x7b", "0x2", "0x7b", "0x7b"]
+                "contract_address": contract_address,
+                "entry_point_selector": is_valid_signature,
+                "calldata": [msg, 0x2, r, s]
             },
             "block_id": "pending"
         });
@@ -96,13 +101,47 @@ impl RPCServer for RPC {
             Ok(None) => println!("ok none"),
             Err(e) => println!("%%%Error: {e:?}"),
         };
+
         // Fetch amount of address from contract
+        // entrypoint selector for balance_of
+        let balance_of = "0x035a73cd311a05d46deda634c5ee045db92f811b4e74bca4437fcb5302b7af33";
+        raw_params = serde_json::json!({
+            "request": {
+                "contract_address": contract_address,
+                "entry_point_selector": balance_of,
+                "calldata": [addr]
+            },
+            "block_id": "pending"
+        });
+        let params = rpc_params! {raw_params};
+        let rpc_response: std::result::Result<std::option::Option<String>, String> =
+            http_client.request("starknet_call", params).await.unwrap();
+        let mut c: u128 = 0;
+        match rpc_response {
+            Ok(Some(s_)) => {
+                println!("ok some {s_}");
+                c = s_.parse::<u128>().unwrap();
+            }
+            Ok(None) => println!("ok none"),
+            Err(e) => println!("%%%Error: {e:?}"),
+        };
+
+        // convert string to u128
+        let n = dotenv::var("n").unwrap();
+        let n = n.parse::<u128>().unwrap();
+        let mu = dotenv::var("mu").unwrap();
+        let mu = U256::from_str(&mu).unwrap();
+        // convert string to U256
+        let lambda = U256::from(dotenv::var("lambda").unwrap().parse::<u128>().unwrap());
 
         // Decrypt the amount
+        let amount = paillier::decrypt(c, lambda, n, mu);
 
         // Send the decrypted amount
-
-        todo!();
+        Ok(serde_json::json!({
+            "amount": amount.as_u128(),
+        })
+        .to_string())
     }
 }
 pub fn register_methods<Context: Send + Sync + 'static>(
