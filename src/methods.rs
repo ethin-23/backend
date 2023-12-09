@@ -47,6 +47,23 @@ pub fn register_methods<Context: Send + Sync + 'static>(
             // Err(er) => return Err(ErrorCode::InvalidParams),
         }
     })?;
+    module.register_method("decipher_amount", |params, _| {
+        let params = parse_params(params);
+        let address = &params[0];
+        let sign_r = &params[1];
+        let sign_s = &params[2];
+        let message = &params[3];
+
+        // verify sig ECDSA
+
+        // Fetch amount of address from contract
+
+        // Decrypt the amount
+
+        // Send the decrypted amount
+
+        todo!();
+    })?;
 
     Ok(())
 }
