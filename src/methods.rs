@@ -1,5 +1,4 @@
 use jsonrpsee::{types::Params, RpcModule};
-use rug::{rand::RandState, Integer};
 use serde_json::Value;
 
 use crate::paillier;
@@ -23,11 +22,10 @@ pub fn encrypt(message: &str) -> anyhow::Result<(u128, u128, u128)> {
     let g = dotenv::var("g").unwrap();
     let g = g.parse::<u128>()?;
 
-    let mut rng = RandState::new();
-    let r = Integer::from(Integer::random_bits(62, &mut rng)).to_u128_wrapping();
-    let c = paillier::encrypt(message, r, n, g);
+    let r = rand::random::<u64>() & !1; // Remove one bit
+    let c = paillier::encrypt(message, r.into(), n, g);
 
-    Ok((n, c.as_u128(), r))
+    Ok((n, c.as_u128(), r.into()))
 }
 
 pub fn register_methods<Context: Send + Sync + 'static>(
