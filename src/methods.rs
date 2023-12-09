@@ -1,7 +1,8 @@
-use fast_paillier::{Ciphertext, Nonce};
 use jsonrpsee::{types::Params, RpcModule};
 use rug::{rand::RandState, Integer};
 use serde_json::Value;
+
+use crate::paillier;
 
 pub fn parse_params(p: Params) -> Vec<String> {
     let params = p.as_str().unwrap().to_string().replace("\"", "");
@@ -15,17 +16,18 @@ pub fn parse_params(p: Params) -> Vec<String> {
 //         .collect()
 // }
 
-pub fn encrypt(message: &str) -> anyhow::Result<(Integer, Ciphertext, Nonce)> {
-    let n = Integer::from(678348576345876347_i128);
-
-    let key = fast_paillier::EncryptionKey::from_n(n.clone());
-    let mut rng = RandState::new();
-    let r = Integer::random_bits(62, &mut rng).into();
+pub fn encrypt(message: &str) -> anyhow::Result<(u128, u128, u128)> {
     let message = message.parse::<u128>()?;
+    let n = dotenv::var("n").unwrap();
+    let n = n.parse::<u128>()?;
+    let g = dotenv::var("g").unwrap();
+    let g = g.parse::<u128>()?;
 
-    let c = key.encrypt_with(&message.into(), &r)?;
+    let mut rng = RandState::new();
+    let r = Integer::from(Integer::random_bits(62, &mut rng)).to_u128_wrapping();
+    let c = paillier::encrypt(message, r, n, g);
 
-    Ok((n, c, r))
+    Ok((n, c.as_u128(), r))
 }
 
 pub fn register_methods<Context: Send + Sync + 'static>(
@@ -33,16 +35,14 @@ pub fn register_methods<Context: Send + Sync + 'static>(
 ) -> anyhow::Result<()> {
     module.register_method("encrypt", |params, _| {
         let params = parse_params(params);
-        let _recepient = &params[0];
         let amount = &params[1];
 
         match encrypt(&amount) {
             Ok((n, c, r)) => {
-                fast_paillier::DecryptionKey::from()
                 return serde_json::json!({
-                    "cipher": c.to_i128().unwrap().to_string(),
-                    "r": r.to_i128().unwrap().to_string(),
-                    "n": n.to_i128().unwrap().to_string(),
+                    "cipher": c.to_string(),
+                    "r": r.to_string(),
+                    "n": n.to_string(),
                 });
             }
             Err(er) => Value::String(format!("{er:?}")),
