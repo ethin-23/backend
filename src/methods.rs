@@ -40,7 +40,7 @@ pub fn encrypt(message: &str) -> anyhow::Result<(u128, u128, u128)> {
 
 pub struct RPC;
 
-#[rpc(server, namespace = "starknet")]
+#[rpc(server)]
 pub trait RPC: Send + Sync {
     #[method(name = "play")]
     async fn play(&self) -> String;
@@ -67,6 +67,7 @@ impl RPCServer for RPC {
         addr: String,
         r: String,
         s: String,
+        rnd: String,
         msg: String,
     ) -> Result<String, ErrorCode> {
         println!("decipher");
@@ -163,7 +164,7 @@ pub fn register_methods<Context: Send + Sync + 'static>(
             // Err(er) => return Err(ErrorCode::InvalidParams),
         }
     })?;
-    let rpc = RPC;
-    module.merge(rpc.into_rpc())?;
+
+    module.merge(RPC.into_rpc())?;
     Ok(())
 }
