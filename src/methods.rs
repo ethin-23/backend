@@ -18,16 +18,11 @@ pub fn parse_params(p: Params) -> Vec<String> {
 pub fn encrypt(message: &str) -> anyhow::Result<(Integer, Ciphertext, Nonce)> {
     let n = Integer::from(678348576345876347_i128);
 
-    println!("let key");
     let key = fast_paillier::EncryptionKey::from_n(n.clone());
-    println!("let mut rng");
     let mut rng = RandState::new();
-    println!("let r");
-    let r = Integer::random_bits(64, &mut rng).into();
-    println!("message {message}");
-    let message = message.parse::<u128>().unwrap();
+    let r = Integer::random_bits(62, &mut rng).into();
+    let message = message.parse::<u128>()?;
 
-    println!("let c");
     let c = key.encrypt_with(&message.into(), &r)?;
 
     Ok((n, c, r))
@@ -40,10 +35,10 @@ pub fn register_methods<Context: Send + Sync + 'static>(
         let params = parse_params(params);
         let _recepient = &params[0];
         let amount = &params[1];
-        println!("Params {}:\n {}|{}", params.len(), params[0], params[1]);
 
         match encrypt(&amount) {
             Ok((n, c, r)) => {
+                fast_paillier::DecryptionKey::from()
                 return serde_json::json!({
                     "cipher": c.to_i128().unwrap().to_string(),
                     "r": r.to_i128().unwrap().to_string(),

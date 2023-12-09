@@ -41,6 +41,8 @@ async fn run_server() -> anyhow::Result<SocketAddr> {
         .build("127.0.0.1:18765".parse::<SocketAddr>()?)
         .await?;
 
+    let key = fast_paillier::EncryptionKey::;
+
     let mut module = RpcModule::new(());
 
     register_methods(&mut module)?;
