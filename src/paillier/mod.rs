@@ -1,9 +1,9 @@
-mod utils;
+pub mod utils;
 use primitive_types::U256;
-use utils::{pow, L};
+use utils::{l_func, pow};
 
 // Generate hiding for the value from the public key
-fn encrypt(m: u128, r: u128, n: u128, g: u128) -> U256 {
+pub fn encrypt(m: u128, r: u128, n: u128, g: u128) -> U256 {
     let n2 = n * n;
     assert!(g < n2, "g should be < n^2");
     assert!(m < n, "m should be < n");
@@ -16,7 +16,7 @@ fn encrypt(m: u128, r: u128, n: u128, g: u128) -> U256 {
 }
 
 // Reveal hidings with private key
-fn decrypt(c: u128, lambda: U256, n: u128, mu: U256) -> U256 {
+pub fn decrypt(c: u128, lambda: U256, n: u128, mu: U256) -> U256 {
     let n2 = n * n;
     assert!(c < n2, "c should be < n2");
     assert!(n < 0x10000000000000000, "n should be < 2^64");
@@ -24,7 +24,7 @@ fn decrypt(c: u128, lambda: U256, n: u128, mu: U256) -> U256 {
     // L(pow(c, lambda, n2), n) * mu % n
 
     let cl: U256 = pow(c, lambda, n2).into();
-    let l: U256 = L(cl, n.into());
+    let l: U256 = l_func(cl, n.into());
 
     let n256: U256 = n.into();
     l * mu % n256

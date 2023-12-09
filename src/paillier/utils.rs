@@ -48,7 +48,7 @@ pub fn pow(x: u128, p: U256, modulus: u128) -> u128 {
 }
 
 // Define a function  L(x) = ( x - 1 ) / n
-pub fn L(x: U256, n: U256) -> U256 {
+pub fn l_func(x: U256, n: U256) -> U256 {
     (x - 1) / n
 }
 

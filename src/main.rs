@@ -1,5 +1,5 @@
 mod methods;
-mod utils;
+pub mod paillier;
 
 use hyper::Method;
 use jsonrpsee::server::{RpcModule, Server};
@@ -9,6 +9,7 @@ use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    dotenv::dotenv().ok();
     tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .try_init()
@@ -39,7 +40,7 @@ async fn run_server() -> anyhow::Result<SocketAddr> {
     // In this example, we use both features.
     let server = Server::builder()
         .set_middleware(middleware)
-        .build("127.0.0.1:18765".parse::<SocketAddr>()?)
+        .build("0.0.0.0:18765".parse::<SocketAddr>()?)
         .await?;
 
     let mut module = RpcModule::new(());
