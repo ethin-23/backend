@@ -1,9 +1,4 @@
-use jsonrpsee::{
-    core::async_trait,
-    proc_macros::rpc,
-    types::{error::ErrorCode, Params},
-    RpcModule,
-};
+use jsonrpsee::{core::async_trait, proc_macros::rpc, types::error::ErrorCode, RpcModule};
 
 use primitive_types::U256;
 
